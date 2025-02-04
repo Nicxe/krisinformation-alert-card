@@ -1,19 +1,21 @@
 # Krisinformation Alert Card
+<img alt="Maintenance" src="https://img.shields.io/maintenance/yes/2025"> <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/Nicxe/krisinformation-alert-card"><br>
 
-Krisinformation Alert Card is a custom Lovelace card for Home Assistant designed to display crisis alerts from the [Krisinformation integration](https://github.com/Nicxe/krisinformation).
+<img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/Nicxe/krisinformation-alert-card">
 
-## Features
 
-- Displays alert information in the following order:
-  - **Header (Alert Headline)**
-  - **Published**
-  - **Coordinates**
-  - **PushMessage** 
-- Configurable options to show/hide individual attributes (Published, Coordinates, PushMessage, border, etc.)
- 
+
+## Overview
+
+This custom card is designed for the [Krisinformation integration](https://github.com/Nicxe/krisinformation), allowing you to display crisis alerts (VMA) from the Swedish krisinformation.se on your Home Assistant dashboards.
+
+
  
 > [!WARNING]
 > Early alpha version with ongoing development and improvements
+
+
+<a href="https://buymeacoffee.com/niklasv" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
 
 ## Installation
 
@@ -33,7 +35,7 @@ You can install this card by following one of the guides below:
 
 
 
-1. Download the `smhi-alert-card.js` file from the [latest release](https://github.com/Nicxe/krisinformation-alert-card/releases).
+1. Download the `krisinformation-alert-card.js` file from the [latest release](https://github.com/Nicxe/krisinformation-alert-card/releases).
 2. Place the `krisinformation-alert-card.js` file in your `config/www` folder.
 3. Add a reference to `krisinformation-alert-card.js` in your dashboard. There are two ways to do this:
     - **Using the UI:** Go to _Settings_ → _Dashboards_ → _More Options_ → _Resources_ → _Add Resource_. Set the URL as `krisinformation-alert-card.js` and set the _Resource type_ to `JavaScript Module`.
@@ -46,3 +48,31 @@ You can install this card by following one of the guides below:
         ```
 
 </details>
+
+## Configuration
+
+The card can be configured using the dashboard UI editor:
+
+1. In the dashboard UI, click on the three dots in the top right corner.
+2. Click **Edit Dashboard**.
+3. Click the **Plus** button to add a new card.
+4. Find **Custom: Krisinformation Alert Card.js** in the list.
+
+
+#### Card Example in YAML
+
+```yaml
+type: custom:krisinformation-alert-card
+entity: sensor.krisinformation_varningar
+title: Krisinformation Alerts
+show_header: true
+show_published: true
+show_coordinates: true
+show_pushmessage: true
+show_border: true
+show_map_url: true
+```
+
+## Usage Screenshots
+
+![Screenshot](https://github.com/Nicxe/krisinformation-alert-card/blob/main/screenshot.png)
