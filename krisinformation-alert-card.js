@@ -1,7 +1,6 @@
 class KrisinformationAlertCard extends HTMLElement {
   constructor() {
     super();
-    // Vi använder inte Shadow DOM för att undvika problem med inbyggda element.
   }
 
   set hass(hass) {
@@ -13,7 +12,7 @@ class KrisinformationAlertCard extends HTMLElement {
 
     const alerts = stateObj.attributes.alerts || [];
 
-    // Förhindra onödig omrendering
+
     if (this.lastChild && this._alerts === alerts) {
       return;
     }
@@ -56,10 +55,6 @@ class KrisinformationAlertCard extends HTMLElement {
         font-size: 0.9em;
         line-height: 1.5;
       }
-      .alert-details a {
-        color: var(--primary-color);
-        text-decoration: none;
-      }
       .no-alerts {
         font-size: 1em;
         color: var(--secondary-text-color);
@@ -67,7 +62,7 @@ class KrisinformationAlertCard extends HTMLElement {
       }
     `;
 
-    // Lägg till kortets översta header (om show_header inte är false)
+
     if (this.config.show_header !== false) {
       const header = document.createElement('div');
       header.className = 'header';
@@ -88,44 +83,21 @@ class KrisinformationAlertCard extends HTMLElement {
         const box = document.createElement('div');
         box.className = 'alert-box';
 
-        // Använd alertens Headline som header
+
         const boxHeader = document.createElement('div');
         boxHeader.className = 'alert-header';
         boxHeader.innerHTML = `<div class="alert-headline">${alert.Headline || 'N/A'}</div>`;
         box.appendChild(boxHeader);
 
-        // Hämta koordinater – hantera både objekt och array
-        let coordsText = 'N/A';
-        if (alert.Area) {
-          if (Array.isArray(alert.Area)) {
-            const areaInfo = alert.Area.find(a => a.Coordinates);
-            if (areaInfo && areaInfo.Coordinates) {
-              const coords = areaInfo.Coordinates;
-              coordsText = Array.isArray(coords) ? coords.join(', ') : coords;
-            }
-          } else if (typeof alert.Area === 'object' && alert.Area.Coordinates) {
-            const coords = alert.Area.Coordinates;
-            coordsText = Array.isArray(coords) ? coords.join(', ') : coords;
-          }
-        }
 
-        // Bygg detaljerna i ordningen: Published, Coordinates, PushMessage, extra radbrytning, map_url
         let detailsHTML = '';
         if (this.config.show_published !== false) {
           detailsHTML += `<b>Published:</b> ${alert.Published ? new Date(alert.Published).toLocaleString() : 'N/A'}<br>`;
         }
-        if (this.config.show_coordinates !== false) {
-          detailsHTML += `<b>Coordinates:</b> ${coordsText}<br>`;
-        }
         if (this.config.show_pushmessage !== false) {
           detailsHTML += `${alert.PushMessage || 'N/A'}<br>`;
-          // Extra radbrytning efter pushmessage
           detailsHTML += `<br>`;
         }
-        if (this.config.show_map_url !== false && alert.map_url) {
-          detailsHTML += `<a href="${alert.map_url}" target="_blank">View Map</a><br>`;
-        }
-
         const details = document.createElement('div');
         details.className = 'alert-details';
         details.innerHTML = detailsHTML;
@@ -134,7 +106,6 @@ class KrisinformationAlertCard extends HTMLElement {
       });
     }
 
-    // Rensa bort gammalt innehåll och lägg till det nya kortet
     while (this.lastChild) {
       this.removeChild(this.lastChild);
     }
@@ -162,9 +133,7 @@ class KrisinformationAlertCard extends HTMLElement {
       title: 'Krisinformation Alerts',
       show_header: true,
       show_published: true,
-      show_coordinates: true,
       show_pushmessage: true,
-      show_map_url: true,
       show_border: true,
     };
   }
@@ -220,19 +189,7 @@ class KrisinformationAlertCardEditor extends HTMLElement {
           }
         },
         {
-          name: 'show_coordinates',
-          selector: {
-            boolean: {}
-          }
-        },
-        {
           name: 'show_pushmessage',
-          selector: {
-            boolean: {}
-          }
-        },
-        {
-          name: 'show_map_url',
           selector: {
             boolean: {}
           }
@@ -250,9 +207,7 @@ class KrisinformationAlertCardEditor extends HTMLElement {
         title: this._config.title || '',
         show_header: this._config.show_header !== undefined ? this._config.show_header : true,
         show_published: this._config.show_published !== undefined ? this._config.show_published : true,
-        show_coordinates: this._config.show_coordinates !== undefined ? this._config.show_coordinates : true,
         show_pushmessage: this._config.show_pushmessage !== undefined ? this._config.show_pushmessage : true,
-        show_map_url: this._config.show_map_url !== undefined ? this._config.show_map_url : true,
         show_border: this._config.show_border !== undefined ? this._config.show_border : true,
       };
 
@@ -274,9 +229,7 @@ class KrisinformationAlertCardEditor extends HTMLElement {
         title: this._config.title || '',
         show_header: this._config.show_header !== undefined ? this._config.show_header : true,
         show_published: this._config.show_published !== undefined ? this._config.show_published : true,
-        show_coordinates: this._config.show_coordinates !== undefined ? this._config.show_coordinates : true,
         show_pushmessage: this._config.show_pushmessage !== undefined ? this._config.show_pushmessage : true,
-        show_map_url: this._config.show_map_url !== undefined ? this._config.show_map_url : true,
         show_border: this._config.show_border !== undefined ? this._config.show_border : true,
       };
     }
