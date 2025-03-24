@@ -7,7 +7,7 @@
 
 ## Overview
 
-This custom card is designed for the [Krisinformation integration](https://github.com/Nicxe/krisinformation), allowing you to display crisis alerts (VMA) from the Swedish krisinformation.se on your Home Assistant dashboards.
+This custom card is designed for the [Krisinformation integration](https://github.com/Nicxe/krisinformation), allowing you to display crisis alerts (VMA) from Sveriges Radio's API for Important Public Announcements on your Home Assistant dashboards.
 
 
  
@@ -37,7 +37,7 @@ You can install this card by following one of the guides below:
 
 1. Download the `krisinformation-alert-card.js` file from the [latest release](https://github.com/Nicxe/krisinformation-alert-card/releases).
 2. Place the `krisinformation-alert-card.js` file in your `config/www` folder.
-3. Add a reference to `krisinformation-alert-card.js` in your dashboard. There are two ways to do this:
+3. Add a reference to `/local/krisinformation-alert-card.js` in your dashboard. There are two ways to do this:
     - **Using the UI:** Go to _Settings_ → _Dashboards_ → _More Options_ → _Resources_ → _Add Resource_. Set the URL as `krisinformation-alert-card.js` and set the _Resource type_ to `JavaScript Module`.
       **Note:** If you do not see the Resources menu, you need to enable _Advanced Mode_ in your _User Profile_.
     - **Using YAML:** Add the following code to the `lovelace` section of your configuration:
@@ -63,14 +63,12 @@ The card can be configured using the dashboard UI editor:
 
 ```yaml
 type: custom:krisinformation-alert-card
-entity: sensor.krisinformation_varningar
+entity: sensor.krisinformation_hela_sverige
 title: Krisinformation Alerts
 show_header: true
 show_published: true
-show_coordinates: true
 show_pushmessage: true
 show_border: true
-show_map_url: true
 ```
 
 ## Usage Screenshots

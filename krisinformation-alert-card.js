@@ -12,7 +12,6 @@ class KrisinformationAlertCard extends HTMLElement {
 
     const alerts = stateObj.attributes.alerts || [];
 
-
     if (this.lastChild && this._alerts === alerts) {
       return;
     }
@@ -62,11 +61,12 @@ class KrisinformationAlertCard extends HTMLElement {
       }
     `;
 
-
     if (this.config.show_header !== false) {
       const header = document.createElement('div');
       header.className = 'header';
-      header.innerHTML = `<div class="alert-headline">${this.config.title || stateObj.attributes.friendly_name}</div>`;
+
+      const title = this.config.title || stateObj.attributes.friendly_name;
+      header.innerHTML = `<div class="alert-headline">${title}</div>`;
       card.appendChild(style);
       card.appendChild(header);
     } else {
@@ -83,21 +83,34 @@ class KrisinformationAlertCard extends HTMLElement {
         const box = document.createElement('div');
         box.className = 'alert-box';
 
-
         const boxHeader = document.createElement('div');
         boxHeader.className = 'alert-header';
-        boxHeader.innerHTML = `<div class="alert-headline">${alert.Headline || 'N/A'}</div>`;
+        boxHeader.innerHTML = `<div class="alert-headline">${alert.event || 'N/A'}</div>`;
         box.appendChild(boxHeader);
 
-
         let detailsHTML = '';
-        if (this.config.show_published !== false) {
-          detailsHTML += `<b>Published:</b> ${alert.Published ? new Date(alert.Published).toLocaleString() : 'N/A'}<br>`;
+
+        if (this.config.show_sent !== false) {
+          const sentTime = alert.sent
+            ? new Date(alert.sent).toLocaleString()
+            : 'N/A';
+          detailsHTML += `<b>Skickat:</b> ${sentTime}<br>`;
         }
-        if (this.config.show_pushmessage !== false) {
-          detailsHTML += `${alert.PushMessage || 'N/A'}<br>`;
-          detailsHTML += `<br>`;
+
+        if (this.config.show_severity !== false) {
+          detailsHTML += `<b>Allvarlighetsgrad:</b> ${alert.severity || 'N/A'}<br>`;
         }
+
+        if (this.config.show_areas !== false) {
+          detailsHTML += `<b>Område:</b> ${alert.areas || ''}<br>`;
+        }
+
+        if (this.config.show_description !== false) {
+          detailsHTML += '<br>' + (alert.description || 'N/A') + '<br>';
+        }
+
+        detailsHTML += '<br>';
+
         const details = document.createElement('div');
         details.className = 'alert-details';
         details.innerHTML = detailsHTML;
@@ -132,14 +145,17 @@ class KrisinformationAlertCard extends HTMLElement {
       entity: entities.find(e => e.startsWith('sensor.')) || '',
       title: 'Krisinformation Alerts',
       show_header: true,
-      show_published: true,
-      show_pushmessage: true,
+      show_sent: true,
+      show_severity: true,
+      show_areas: true,
+      show_description: true,
       show_border: true,
     };
   }
 }
 
 customElements.define('krisinformation-alert-card', KrisinformationAlertCard);
+
 
 class KrisinformationAlertCardEditor extends HTMLElement {
   constructor() {
@@ -165,9 +181,7 @@ class KrisinformationAlertCardEditor extends HTMLElement {
           name: 'entity',
           required: true,
           selector: {
-            entity: {
-              domain: 'sensor'
-            }
+            entity: { domain: 'sensor' }
           }
         },
         {
@@ -183,13 +197,25 @@ class KrisinformationAlertCardEditor extends HTMLElement {
           }
         },
         {
-          name: 'show_published',
+          name: 'show_sent',
           selector: {
             boolean: {}
           }
         },
         {
-          name: 'show_pushmessage',
+          name: 'show_severity',
+          selector: {
+            boolean: {}
+          }
+        },
+        {
+          name: 'show_areas',
+          selector: {
+            boolean: {}
+          }
+        },
+        {
+          name: 'show_description',
           selector: {
             boolean: {}
           }
@@ -199,15 +225,17 @@ class KrisinformationAlertCardEditor extends HTMLElement {
           selector: {
             boolean: {}
           }
-        }
+        },
       ];
 
       const data = {
         entity: this._config.entity || '',
         title: this._config.title || '',
         show_header: this._config.show_header !== undefined ? this._config.show_header : true,
-        show_published: this._config.show_published !== undefined ? this._config.show_published : true,
-        show_pushmessage: this._config.show_pushmessage !== undefined ? this._config.show_pushmessage : true,
+        show_sent: this._config.show_sent !== undefined ? this._config.show_sent : true,
+        show_severity: this._config.show_severity !== undefined ? this._config.show_severity : true,
+        show_areas: this._config.show_areas !== undefined ? this._config.show_areas : true,
+        show_description: this._config.show_description !== undefined ? this._config.show_description : true,
         show_border: this._config.show_border !== undefined ? this._config.show_border : true,
       };
 
@@ -228,8 +256,10 @@ class KrisinformationAlertCardEditor extends HTMLElement {
         entity: this._config.entity || '',
         title: this._config.title || '',
         show_header: this._config.show_header !== undefined ? this._config.show_header : true,
-        show_published: this._config.show_published !== undefined ? this._config.show_published : true,
-        show_pushmessage: this._config.show_pushmessage !== undefined ? this._config.show_pushmessage : true,
+        show_sent: this._config.show_sent !== undefined ? this._config.show_sent : true,
+        show_severity: this._config.show_severity !== undefined ? this._config.show_severity : true,
+        show_areas: this._config.show_areas !== undefined ? this._config.show_areas : true,
+        show_description: this._config.show_description !== undefined ? this._config.show_description : true,
         show_border: this._config.show_border !== undefined ? this._config.show_border : true,
       };
     }
