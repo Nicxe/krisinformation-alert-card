@@ -74,4 +74,3 @@ show_border: true
 ## Usage Screenshots
 
 ![Screenshot](https://github.com/Nicxe/krisinformation-alert-card/blob/main/screenshot.png)
-
