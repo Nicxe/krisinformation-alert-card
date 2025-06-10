@@ -75,13 +75,3 @@ show_border: true
 
 ![Screenshot](https://github.com/Nicxe/krisinformation-alert-card/blob/main/screenshot.png)
 
-## Development
-
-Install dependencies and build the card:
-
-```bash
-npm install
-npm run build
-```
-
-The compiled file will be placed in the `dist` folder.
