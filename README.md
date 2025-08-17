@@ -10,11 +10,6 @@
 This custom card is designed for the [Krisinformation integration](https://github.com/Nicxe/krisinformation), allowing you to display crisis alerts (VMA) from Sveriges Radio's API for Important Public Announcements on your Home Assistant dashboards.
 
 
- 
-> [!WARNING]
-> Early alpha version with ongoing development and improvements
-
-
 <a href="https://buymeacoffee.com/niklasv" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
 
 ## Installation
@@ -64,14 +59,33 @@ The card can be configured using the dashboard UI editor:
 ```yaml
 type: custom:krisinformation-alert-card
 entity: sensor.krisinformation_hela_sverige
-title: Krisinformation Alerts
+title: ""
 show_header: true
-show_published: true
-show_pushmessage: true
-show_border: true
+show_icon: true
+icon: mdi:alert-circle-outline
+hide_when_empty: true
+max_items: 0
+sort_order: time_desc
+group_by: none
+filter_severities: []
+filter_areas: []
+collapse_details: true
+show_area: true
+show_type: true
+show_severity: true
+show_sent: true
+show_details: true
+meta_order:
+  - area
+  - type
+  - severity
+  - sent
+icon_color: ""
+
 ```
 
 ## Usage Screenshots
 
-![Screenshot](https://github.com/Nicxe/krisinformation-alert-card/blob/main/screenshot.png)
+<img width="482" height="287" alt="krisinfo_card_screenshoot" src="https://github.com/user-attachments/assets/0375ef70-32d1-489b-9ce3-4b578896f861" />
+
 
