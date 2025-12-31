@@ -13,6 +13,12 @@ class KrisinformationAlertCard extends LitElement {
   };
 
   static styles = css`
+    :host {
+      /* Strength of the severity-tinted background when enabled (used in color-mix) */
+      --kris-alert-bg-strong: 22%;
+      --kris-alert-bg-soft: 12%;
+    }
+
     ha-card {
       padding: 8px 0;
       background: transparent;
@@ -38,6 +44,16 @@ class KrisinformationAlertCard extends LitElement {
       border: 1px solid var(--divider-color);
       background: var(--card-background-color);
       position: relative;
+    }
+
+    /* Optional severity-tinted background (keeps normal card background as base) */
+    .alert.bg-severity {
+      background: linear-gradient(
+          90deg,
+          color-mix(in srgb, var(--kris-accent) var(--kris-alert-bg-strong, 22%), var(--card-background-color)) 0%,
+          color-mix(in srgb, var(--kris-accent) var(--kris-alert-bg-soft, 12%), var(--card-background-color)) 55%,
+          var(--card-background-color) 100%
+        );
     }
     .alert::before {
       content: '';
@@ -263,6 +279,7 @@ class KrisinformationAlertCard extends LitElement {
     const sevClass = this._severityClass(item);
     const expanded = !!this._expanded[this._alertKey(item, idx)];
     const showIcon = this.config.show_icon !== false;
+    const sevBgClass = this.config?.severity_background ? 'bg-severity' : '';
 
     const metaFields = {
       area: (this.config.show_area !== false && (item.area || item.areas))
@@ -290,7 +307,7 @@ class KrisinformationAlertCard extends LitElement {
 
     return html`
       <div
-        class="alert ${sevClass}"
+        class="alert ${sevClass} ${sevBgClass}"
         role="button"
         tabindex="0"
         aria-label="${item.headline || item.event || ''}"
@@ -549,6 +566,7 @@ class KrisinformationAlertCard extends LitElement {
     // Defaults
     if (normalized.show_header === undefined) normalized.show_header = true;
     if (normalized.show_icon === undefined) normalized.show_icon = true;
+    if (normalized.severity_background === undefined) normalized.severity_background = false;
     if (normalized.hide_when_empty === undefined) normalized.hide_when_empty = false;
     if (normalized.max_items === undefined) normalized.max_items = 0;
     if (normalized.sort_order === undefined) normalized.sort_order = 'time_desc';
@@ -586,6 +604,7 @@ class KrisinformationAlertCard extends LitElement {
       title: '',
       show_header: true,
       show_icon: true,
+      severity_background: false,
       icon: 'mdi:alert-circle-outline',
       hide_when_empty: true,
       max_items: 0,
@@ -637,6 +656,7 @@ class KrisinformationAlertCardEditor extends LitElement {
       { name: 'show_header', label: 'Show header', selector: { boolean: {} } },
       { name: 'hide_when_empty', label: 'Hide when empty', selector: { boolean: {} } },
       { name: 'show_icon', label: 'Show icon', selector: { boolean: {} } },
+      { name: 'severity_background', label: 'Severity background', selector: { boolean: {} } },
       { name: 'icon', label: 'Icon (mdi:...)', selector: { text: {} } },
       { name: 'icon_color', label: 'Icon color (CSS)', selector: { text: {} } },
       { name: 'max_items', label: 'Max items', selector: { number: { min: 0, mode: 'box' } } },
@@ -672,6 +692,7 @@ class KrisinformationAlertCardEditor extends LitElement {
       title: this._config.title || '',
       show_header: this._config.show_header !== undefined ? this._config.show_header : true,
       show_icon: this._config.show_icon !== undefined ? this._config.show_icon : true,
+      severity_background: this._config.severity_background !== undefined ? this._config.severity_background : false,
       icon: this._config.icon || 'mdi:alert-circle-outline',
       icon_color: this._config.icon_color || '',
       hide_when_empty: this._config.hide_when_empty !== undefined ? this._config.hide_when_empty : false,
@@ -797,6 +818,7 @@ class KrisinformationAlertCardEditor extends LitElement {
       title: 'Title',
       show_header: 'Show header',
       show_icon: 'Show icon',
+      severity_background: 'Severity background',
       icon: 'Icon',
       icon_color: 'Icon color',
       hide_when_empty: 'Hide when empty',
