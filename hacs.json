@@ -1,7 +1,5 @@
 {
   "name": "Krisinformation Alert Card",
   "filename": "krisinformation-alert-card.js",
-  "render_readme": true,
-  "description": "Displays Krisinformation alerts using the Krisinformation integration.",
-  "version": "2.1.0"
+  "render_readme": true
 }
