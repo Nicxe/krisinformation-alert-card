@@ -17,6 +17,8 @@ class KrisinformationAlertCard extends LitElement {
       /* Strength of the severity-tinted background when enabled (used in color-mix) */
       --kris-alert-bg-strong: 22%;
       --kris-alert-bg-soft: 12%;
+      /* Optical vertical adjustment for the title in compact (1-row) mode */
+      --kris-alert-compact-title-offset: 2px;
     }
 
     ha-card {
@@ -44,6 +46,10 @@ class KrisinformationAlertCard extends LitElement {
       border: 1px solid var(--divider-color);
       background: var(--card-background-color);
       position: relative;
+    }
+    /* Compact (single-line) layout: vertically center the whole row */
+    .alert.compact {
+      align-items: center;
     }
 
     /* Optional severity-tinted background (keeps normal card background as base) */
@@ -79,11 +85,25 @@ class KrisinformationAlertCard extends LitElement {
       margin-top: 2px;
       color: var(--kris-icon-color, var(--primary-color));
     }
+    .icon-col {
+      display: flex;
+      align-items: flex-start;
+    }
+    .icon-col.compact {
+      align-items: center;
+    }
     .content {
       display: flex;
       flex-direction: column;
       gap: 4px;
       min-width: 0;
+    }
+    .content {
+      align-self: stretch;
+    }
+    /* In compact layout, don't stretch the content; let the grid center it precisely */
+    .content.compact {
+      align-self: center;
     }
     .title {
       display: flex;
@@ -96,6 +116,11 @@ class KrisinformationAlertCard extends LitElement {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+    /* In compact mode, apply a tiny optical offset so the text looks centered */
+    .headline.compact {
+      transform: translateY(var(--kris-alert-compact-title-offset, 2px));
+      line-height: 1;
     }
     .meta {
       color: var(--secondary-text-color);
@@ -110,6 +135,23 @@ class KrisinformationAlertCard extends LitElement {
       cursor: pointer;
       user-select: none;
       font-size: 0.95em;
+    }
+    .toggle-col {
+      display: flex;
+      justify-content: flex-end;
+      align-items: flex-start;
+      padding-top: 2px;
+      padding-right: 2px;
+    }
+    .toggle-col.compact {
+      align-items: center;
+      padding-top: 0;
+    }
+    /* Compact toggle when placed in the right column (prevents it from consuming an extra line) */
+    .details-toggle.compact {
+      margin: 0;
+      font-size: 0.9em;
+      white-space: nowrap;
     }
     .empty {
       color: var(--secondary-text-color);
@@ -137,6 +179,21 @@ class KrisinformationAlertCard extends LitElement {
     if (this.config?.hide_when_empty && (!alerts || alerts.length === 0)) return 0;
     const header = this._showHeader() ? 1 : 0;
     return header + (alerts ? alerts.length : 0);
+  }
+
+  /**
+   * Sections (grid) view support.
+   * Home Assistant uses this to determine the default/min size and to enable the UI "Layout" tab resizing.
+   * Each section is 12 columns wide.
+   */
+  getGridOptions() {
+    // Provide only column sizing. Avoid returning `rows` here so Sections can auto-size height
+    // based on content (prevents fixed-height behavior and overlap issues when expanding).
+    return {
+      columns: 12,
+      min_columns: 1,
+      max_columns: 12,
+    };
   }
 
   _alerts() {
@@ -295,19 +352,49 @@ class KrisinformationAlertCard extends LitElement {
         ? html`<span><b>${t('sent')}:</b> ${this._fmtTs(item.sent)}</span>`
         : null,
     };
-    const order = Array.isArray(this.config.meta_order) && this.config.meta_order.length
-      ? this.config.meta_order
-      : ['area', 'type', 'severity', 'sent'];
-    const parts = order
-      .map((key) => metaFields[key])
-      .filter((node) => !!node);
 
     const headline = item.headline || item.event || '';
     const description = item.description || '';
+    const detailsText = String(item.details || description || '');
+    metaFields.text = (this.config.show_details !== false && detailsText.trim().length > 0)
+      ? this._markdown(detailsText)
+      : null;
+
+    // Divider-driven meta layout (same concept as smhi-alert-card)
+    const defaultOrder = ['area', 'type', 'severity', 'sent', 'divider', 'text'];
+    const rawOrder = Array.isArray(this.config.meta_order) && this.config.meta_order.length
+      ? this.config.meta_order
+      : defaultOrder;
+    // Ensure divider and text exist exactly once
+    let order = rawOrder.filter((k, i) => rawOrder.indexOf(k) === i);
+    if (!order.includes('divider')) order = [...order, 'divider'];
+    if (!order.includes('text')) order = [...order, 'text'];
+
+    const dividerIndex = order.indexOf('divider');
+    const inlineKeys = dividerIndex >= 0 ? order.slice(0, dividerIndex) : order.filter((k) => k !== 'divider');
+    const detailsKeys = dividerIndex >= 0 ? order.slice(dividerIndex + 1) : [];
+
+    const inlineParts = inlineKeys
+      .filter((k) => k !== 'text')
+      .map((key) => metaFields[key])
+      .filter((node) => !!node);
+    const inlineTextBlock = inlineKeys.includes('text') ? metaFields.text : null;
+
+    const detailsParts = detailsKeys
+      .filter((k) => k !== 'text')
+      .map((key) => metaFields[key])
+      .filter((node) => !!node);
+    const detailsTextBlock = detailsKeys.includes('text') ? metaFields.text : null;
+
+    const hasDetailsContent = (detailsParts.length > 0 || !!detailsTextBlock);
+    const canCollapse = this.config.collapse_details !== false; // backward compat; if false, show details content without toggle
+    const expandedEffective = canCollapse ? expanded : true;
+    const showToggle = canCollapse && hasDetailsContent;
+    const isCompact = !expandedEffective && inlineParts.length === 0 && !inlineTextBlock;
 
     return html`
       <div
-        class="alert ${sevClass} ${sevBgClass}"
+        class="alert ${sevClass} ${sevBgClass} ${isCompact ? 'compact' : ''}"
         role="button"
         tabindex="0"
         aria-label="${item.headline || item.event || ''}"
@@ -315,36 +402,46 @@ class KrisinformationAlertCard extends LitElement {
         @pointerup=${(e) => this._onPointerUp(e, item)}
         @keydown=${(e) => this._onKeydown(e, item)}
       >
-        ${showIcon ? html`<div>${this._iconTemplate(item)}</div>` : html``}
-        <div class="content">
+        ${showIcon ? html`<div class="icon-col ${isCompact ? 'compact' : ''}">${this._iconTemplate(item)}</div>` : html``}
+        <div class="content ${isCompact ? 'compact' : ''}">
           <div class="title">
-            <div class="headline">${headline || description || (item.area || item.areas) || ''}</div>
+            <div class="headline ${isCompact ? 'compact' : ''}">${headline || description || (item.area || item.areas) || ''}</div>
           </div>
-          ${parts.length > 0 ? html`<div class="meta">${parts}</div>` : html``}
-          ${this.config.show_details !== false && (item.details || description)
-            ? (() => {
-                const canCollapse = this.config.collapse_details !== false; // default true
-                const content = String(item.details || description || '');
-                if (!canCollapse) {
-                  return html`<div class="details">${this._markdown(content)}</div>`;
-                }
-                return html`
-                  <div class="details">
-                    <div
-                      class="details-toggle"
-                      @click=${(e) => this._toggleDetails(e, item, idx)}
-                      @pointerdown=${(e) => e.stopPropagation()}
-                      @pointerup=${(e) => e.stopPropagation()}
-                      @keydown=${(e) => e.stopPropagation()}
-                    >
-                      ${expanded ? t('hide_details') : t('show_details')}
-                    </div>
-                    ${expanded ? this._markdown(content) : html``}
-                  </div>`;
-              })()
+          ${inlineParts.length > 0 ? html`<div class="meta">${inlineParts}</div>` : html``}
+          ${inlineTextBlock ? html`<div class="details">${inlineTextBlock}</div>` : html``}
+          ${hasDetailsContent
+            ? html`
+                <div class="details">
+                  ${expandedEffective ? html`
+                    ${detailsParts.length > 0 ? html`<div class="meta">${detailsParts}</div>` : html``}
+                    ${detailsTextBlock ? html`${detailsTextBlock}` : html``}
+                  ` : html``}
+                </div>
+              `
             : html``}
         </div>
-        <div></div>
+        ${showToggle ? html`
+          <div class="toggle-col ${isCompact ? 'compact' : ''}">
+            <div
+              class="details-toggle compact"
+              role="button"
+              tabindex="0"
+              title="${expandedEffective ? t('hide_details') : t('show_details')}"
+              @click=${(e) => this._toggleDetails(e, item, idx)}
+              @pointerdown=${(e) => e.stopPropagation()}
+              @pointerup=${(e) => e.stopPropagation()}
+              @keydown=${(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  this._toggleDetails(e, item, idx);
+                }
+                e.stopPropagation();
+              }}
+            >
+              ${expandedEffective ? t('hide_details') : t('show_details')}
+            </div>
+          </div>
+        ` : html`<div></div>`}
       </div>`;
   }
 
@@ -589,7 +686,12 @@ class KrisinformationAlertCard extends LitElement {
     }
     if (normalized.show_border === undefined) normalized.show_border = true; // compat, but unused
     if (!Array.isArray(normalized.meta_order) || normalized.meta_order.length === 0) {
-      normalized.meta_order = ['area', 'type', 'severity', 'sent'];
+      // Default to putting text in the details section (after divider)
+      normalized.meta_order = ['area', 'type', 'severity', 'sent', 'divider', 'text'];
+    } else {
+      // Ensure divider and text exist
+      if (!normalized.meta_order.includes('divider')) normalized.meta_order = [...normalized.meta_order, 'divider'];
+      if (!normalized.meta_order.includes('text')) normalized.meta_order = [...normalized.meta_order, 'text'];
     }
     return normalized;
   }
@@ -618,7 +720,8 @@ class KrisinformationAlertCard extends LitElement {
       show_severity: true,
       show_sent: true,
       show_details: true,
-      meta_order: ['area', 'type', 'severity', 'sent'],
+      // collapse inferred by divider; default puts text in details (after divider)
+      meta_order: ['area', 'type', 'severity', 'sent', 'divider', 'text'],
     };
   }
 }
@@ -642,6 +745,12 @@ class KrisinformationAlertCardEditor extends LitElement {
     .order-actions { display: flex; gap: 6px; }
     .order-btn { background: var(--secondary-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; padding: 2px 6px; cursor: pointer; }
     .order-btn[disabled] { opacity: 0.4; cursor: default; }
+    .meta-divider-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; padding: 6px 0; color: var(--secondary-text-color); }
+    .meta-divider {
+      height: 0;
+      border-top: 1px dashed var(--divider-color);
+      margin: 6px 0 0 0;
+    }
   `;
 
   setConfig(config) {
@@ -680,7 +789,7 @@ class KrisinformationAlertCardEditor extends LitElement {
       ] } } },
       { name: 'filter_areas', label: 'Filter areas (comma-separated)', selector: { text: {} } },
       { name: 'collapse_details', label: 'Collapse details', selector: { boolean: {} } },
-      { name: 'show_details', label: 'Show details', selector: { boolean: {} } },
+      // show_details is controlled as a meta toggle (text)
       // actions (use ui_action selector like in smhi-alert-card)
       { name: 'tap_action', label: 'Tap action', selector: { ui_action: {} } },
       { name: 'double_tap_action', label: 'Double tap action', selector: { ui_action: {} } },
@@ -702,6 +811,10 @@ class KrisinformationAlertCardEditor extends LitElement {
       filter_severities: this._config.filter_severities || [],
       filter_areas: (this._config.filter_areas || []).join(', '),
       collapse_details: this._config.collapse_details !== undefined ? this._config.collapse_details : true,
+      show_area: this._config.show_area !== undefined ? this._config.show_area : true,
+      show_type: this._config.show_type !== undefined ? this._config.show_type : true,
+      show_severity: this._config.show_severity !== undefined ? this._config.show_severity : true,
+      show_sent: this._config.show_sent !== undefined ? this._config.show_sent : true,
       show_details: this._config.show_details !== undefined ? this._config.show_details : true,
       tap_action: this._config.tap_action || {},
       double_tap_action: this._config.double_tap_action || {},
@@ -709,10 +822,16 @@ class KrisinformationAlertCardEditor extends LitElement {
     };
 
     const allowed = ['area','type','severity','sent'];
-    const currentOrder = (this._config.meta_order && Array.isArray(this._config.meta_order) && this._config.meta_order.length)
-      ? this._config.meta_order.filter((k) => allowed.includes(k))
-      : ['area','type','severity','sent'];
-    const filledOrder = [...currentOrder, ...allowed.filter((k) => !currentOrder.includes(k))];
+    const special = ['divider','text'];
+    const allowedWithSpecial = [...allowed, ...special];
+    const currentOrderRaw = (this._config.meta_order && Array.isArray(this._config.meta_order) && this._config.meta_order.length)
+      ? this._config.meta_order.filter((k) => allowedWithSpecial.includes(k))
+      : ['area','type','severity','sent','divider','text'];
+    // ensure presence
+    let currentOrder = [...currentOrderRaw];
+    if (!currentOrder.includes('divider')) currentOrder.push('divider');
+    if (!currentOrder.includes('text')) currentOrder.push('text');
+    const filledOrder = [...currentOrder, ...allowedWithSpecial.filter((k) => !currentOrder.includes(k))];
 
     const schemaTop = schema.filter((s) => !['tap_action','double_tap_action','hold_action'].includes(s.name));
     const schemaActions = schema.filter((s) => ['tap_action','double_tap_action','hold_action'].includes(s.name));
@@ -727,24 +846,41 @@ class KrisinformationAlertCardEditor extends LitElement {
           @value-changed=${this._valueChanged}
         ></ha-form>
         <div class="meta-fields">
-          ${filledOrder.map((key, index) => html`
-            <ha-settings-row class="meta-row">
-              <span slot="heading">${this._labelForMeta(key)}</span>
-              <span slot="description"></span>
-              <div class="order-actions">
-                <mwc-icon-button @click=${() => this._moveMeta(key, -1)} .disabled=${index === 0} aria-label="Move up">
-                  <ha-icon icon="mdi:chevron-up"></ha-icon>
-                </mwc-icon-button>
-                <mwc-icon-button @click=${() => this._moveMeta(key, 1)} .disabled=${index === filledOrder.length - 1} aria-label="Move down">
-                  <ha-icon icon="mdi:chevron-down"></ha-icon>
-                </mwc-icon-button>
-              </div>
-              <ha-switch
-                .checked=${this._isMetaShown(key)}
-                @change=${(e) => this._toggleMeta(key, e)}
-              ></ha-switch>
-            </ha-settings-row>
-          `)}
+          ${filledOrder.map((key, index) => {
+            if (key === 'divider') {
+              return html`
+                <ha-settings-row class="meta-divider-row">
+                  <span slot="heading">— Details —</span>
+                  <div class="order-actions">
+                    <mwc-icon-button @click=${() => this._moveMeta(key, -1)} .disabled=${index === 0} aria-label="Move up">
+                      <ha-icon icon="mdi:chevron-up"></ha-icon>
+                    </mwc-icon-button>
+                    <mwc-icon-button @click=${() => this._moveMeta(key, 1)} .disabled=${index === filledOrder.length - 1} aria-label="Move down">
+                      <ha-icon icon="mdi:chevron-down"></ha-icon>
+                    </mwc-icon-button>
+                  </div>
+                  <div class="meta-divider"></div>
+                </ha-settings-row>
+              `;
+            }
+            return html`
+              <ha-settings-row class="meta-row">
+                <span slot="heading">${this._labelForMeta(key)}</span>
+                <span slot="description"></span>
+                <div class="order-actions">
+                  <mwc-icon-button @click=${() => this._moveMeta(key, -1)} .disabled=${index === 0} aria-label="Move up">
+                    <ha-icon icon="mdi:chevron-up"></ha-icon>
+                  </mwc-icon-button>
+                  <mwc-icon-button @click=${() => this._moveMeta(key, 1)} .disabled=${index === filledOrder.length - 1} aria-label="Move down">
+                    <ha-icon icon="mdi:chevron-down"></ha-icon>
+                  </mwc-icon-button>
+                </div>
+                <ha-switch
+                  .checked=${this._isMetaShown(key)}
+                  @change=${(e) => this._toggleMeta(key, e)}
+                ></ha-switch>
+              </ha-settings-row>`;
+          })}
         </div>
         <ha-form
           .hass=${this.hass}
@@ -776,31 +912,44 @@ class KrisinformationAlertCardEditor extends LitElement {
     if (key === 'type') return this._config.show_type !== false;
     if (key === 'severity') return this._config.show_severity !== false;
     if (key === 'sent') return this._config.show_sent !== false;
+    if (key === 'text') return this._config.show_details !== false;
+    if (key === 'divider') return true;
     return true;
   }
 
   _toggleMeta(key, ev) {
     const on = ev?.target?.checked ?? true;
-    let next;
-    if (key === 'area') next = { ...this._config, show_area: on };
-    else if (key === 'type') next = { ...this._config, show_type: on };
-    else if (key === 'severity') next = { ...this._config, show_severity: on };
-    else if (key === 'sent') next = { ...this._config, show_sent: on };
-    else next = { ...this._config };
+    let next = { ...this._config };
+    if (key === 'area') next.show_area = on;
+    else if (key === 'type') next.show_type = on;
+    else if (key === 'severity') next.show_severity = on;
+    else if (key === 'sent') next.show_sent = on;
+    else if (key === 'text') next.show_details = on;
     this._config = next;
     this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: next } }));
   }
 
   _moveMeta(key, delta) {
-    const allowed = ['area','type','severity','sent'];
-    const order = (this._config.meta_order && Array.isArray(this._config.meta_order))
-      ? this._config.meta_order.filter((k) => allowed.includes(k))
-      : ['area','type','severity','sent'];
-    const idx = order.indexOf(key);
+    // Normalize to the same order the UI renders (includes 'divider' and 'text' and all allowed keys)
+    const baseKeys = ['area','type','severity','sent'];
+    const specialKeys = ['divider','text'];
+    const allKeys = [...baseKeys, ...specialKeys];
+    const raw = (this._config.meta_order && Array.isArray(this._config.meta_order) && this._config.meta_order.length)
+      ? this._config.meta_order.filter((k) => allKeys.includes(k))
+      : [...allKeys];
+    // Deduplicate while preserving first occurrence
+    let current = raw.filter((k, i) => raw.indexOf(k) === i);
+    // Ensure presence of divider/text
+    if (!current.includes('divider')) current.push('divider');
+    if (!current.includes('text')) current.push('text');
+    // Ensure all allowed keys are present so their relative order is explicit
+    const filled = [...current, ...allKeys.filter((k) => !current.includes(k))];
+
+    const idx = filled.indexOf(key);
     if (idx < 0) return;
-    const newIdx = Math.max(0, Math.min(order.length - 1, idx + delta));
+    const newIdx = Math.max(0, Math.min(filled.length - 1, idx + delta));
     if (newIdx === idx) return;
-    const next = [...order];
+    const next = [...filled];
     next.splice(idx, 1);
     next.splice(newIdx, 0, key);
     this._config = { ...this._config, meta_order: next };
@@ -808,7 +957,7 @@ class KrisinformationAlertCardEditor extends LitElement {
   }
 
   _labelForMeta(key) {
-    const map = { area: 'Area', type: 'Type', severity: 'Severity', sent: 'Sent' };
+    const map = { area: 'Area', type: 'Type', severity: 'Severity', sent: 'Sent', text: 'Text', divider: '— Details —' };
     return map[key] || key;
   }
 
@@ -832,7 +981,6 @@ class KrisinformationAlertCardEditor extends LitElement {
       show_type: 'Show type',
       show_severity: 'Show severity',
       show_sent: 'Show sent',
-      show_details: 'Show details',
       tap_action: 'Tap action',
       double_tap_action: 'Double tap action',
       hold_action: 'Hold action',
