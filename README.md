@@ -1,5 +1,4 @@
 # Krisinformation Alert Card
-<img alt="Maintenance" src="https://img.shields.io/maintenance/yes/2025"> <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/Nicxe/krisinformation-alert-card"><br>
 
 <img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/Nicxe/krisinformation-alert-card">
 
@@ -86,6 +85,6 @@ icon_color: ""
 
 ## Usage Screenshots
 
-<img width="482" height="287" alt="krisinfo_card_screenshoot" src="https://github.com/user-attachments/assets/0375ef70-32d1-489b-9ce3-4b578896f861" />
+<img width="599" height="588" alt="krisinfo_card" src="https://github.com/user-attachments/assets/804dc285-35a0-4383-8c15-0183cd3a39f5" />
 
 
