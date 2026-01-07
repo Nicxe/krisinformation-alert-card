@@ -175,10 +175,17 @@ class KrisinformationAlertCard extends LitElement {
   }
 
   getCardSize() {
-    const alerts = this._visibleAlerts();
-    if (this.config?.hide_when_empty && (!alerts || alerts.length === 0)) return 0;
     const header = this._showHeader() ? 1 : 0;
-    return header + (alerts ? alerts.length : 0);
+
+    // Important: HA may call getCardSize() before hass is injected.
+    // If we return 0 here, Lovelace can drop the card entirely from the editor UI.
+    if (!this.hass) return header + 1;
+
+    const alerts = this._visibleAlerts();
+    const count = Array.isArray(alerts) ? alerts.length : 0;
+
+    // When empty (including in editor), reserve at least one row for the empty state.
+    return header + (count > 0 ? count : 1);
   }
 
   /**
@@ -193,6 +200,9 @@ class KrisinformationAlertCard extends LitElement {
       columns: 12,
       min_columns: 1,
       max_columns: 12,
+      // In edit mode + empty state, HA Sections can collapse cards to 0 height unless a min is provided.
+      // This keeps the card selectable/movable even when there is no data.
+      min_rows: 1,
     };
   }
 
@@ -274,13 +284,12 @@ class KrisinformationAlertCard extends LitElement {
   render() {
     if (!this.hass || !this.config) return html``;
     const stateObj = this.hass.states?.[this.config.entity];
-    if (!stateObj) return html``;
     const t = this._t.bind(this);
     const alerts = this._visibleAlerts();
 
-    if (this.config.hide_when_empty && alerts.length === 0) return html``;
-
-    const header = this._showHeader() ? (this.config.title || stateObj.attributes?.friendly_name || 'Krisinformation') : undefined;
+    const header = this._showHeader()
+      ? (this.config.title || stateObj?.attributes?.friendly_name || 'Krisinformation')
+      : undefined;
 
     return html`
       <ha-card header=${header}>
@@ -664,7 +673,6 @@ class KrisinformationAlertCard extends LitElement {
     if (normalized.show_header === undefined) normalized.show_header = true;
     if (normalized.show_icon === undefined) normalized.show_icon = true;
     if (normalized.severity_background === undefined) normalized.severity_background = false;
-    if (normalized.hide_when_empty === undefined) normalized.hide_when_empty = false;
     if (normalized.max_items === undefined) normalized.max_items = 0;
     if (normalized.sort_order === undefined) normalized.sort_order = 'time_desc';
     if (normalized.group_by === undefined) normalized.group_by = 'none';
@@ -684,6 +692,7 @@ class KrisinformationAlertCard extends LitElement {
     if (Object.prototype.hasOwnProperty.call(normalized, 'show_description')) {
       delete normalized.show_description;
     }
+    if (Object.prototype.hasOwnProperty.call(normalized, 'hide_when_empty')) delete normalized.hide_when_empty;
     if (normalized.show_border === undefined) normalized.show_border = true; // compat, but unused
     if (!Array.isArray(normalized.meta_order) || normalized.meta_order.length === 0) {
       // Default to putting text in the details section (after divider)
@@ -708,7 +717,6 @@ class KrisinformationAlertCard extends LitElement {
       show_icon: true,
       severity_background: false,
       icon: 'mdi:alert-circle-outline',
-      hide_when_empty: true,
       max_items: 0,
       sort_order: 'time_desc',
       group_by: 'none',
@@ -763,7 +771,6 @@ class KrisinformationAlertCardEditor extends LitElement {
       { name: 'entity', label: 'Entity', required: true, selector: { entity: { domain: 'sensor' } } },
       { name: 'title', label: 'Title', selector: { text: {} } },
       { name: 'show_header', label: 'Show header', selector: { boolean: {} } },
-      { name: 'hide_when_empty', label: 'Hide when empty', selector: { boolean: {} } },
       { name: 'show_icon', label: 'Show icon', selector: { boolean: {} } },
       { name: 'severity_background', label: 'Severity background', selector: { boolean: {} } },
       { name: 'icon', label: 'Icon (mdi:...)', selector: { text: {} } },
@@ -804,7 +811,6 @@ class KrisinformationAlertCardEditor extends LitElement {
       severity_background: this._config.severity_background !== undefined ? this._config.severity_background : false,
       icon: this._config.icon || 'mdi:alert-circle-outline',
       icon_color: this._config.icon_color || '',
-      hide_when_empty: this._config.hide_when_empty !== undefined ? this._config.hide_when_empty : false,
       max_items: this._config.max_items ?? 0,
       sort_order: this._config.sort_order || 'time_desc',
       group_by: this._config.group_by || 'none',
@@ -970,7 +976,6 @@ class KrisinformationAlertCardEditor extends LitElement {
       severity_background: 'Severity background',
       icon: 'Icon',
       icon_color: 'Icon color',
-      hide_when_empty: 'Hide when empty',
       max_items: 'Max items',
       sort_order: 'Sort order',
       group_by: 'Group by',
