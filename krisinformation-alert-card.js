@@ -19,10 +19,14 @@ class KrisinformationAlertCard extends LitElement {
       --kris-alert-bg-soft: 12%;
       /* Optical vertical adjustment for the title in compact (1-row) mode */
       --kris-alert-compact-title-offset: 2px;
+      /* Outer horizontal padding for the list (set to 0 to align with other cards) */
+      --kris-alert-outer-padding: 0px;
+      display: block;
     }
 
     ha-card {
-      padding: 8px 0;
+      /* Keep the container tight so stacking multiple transparent cards doesn't show "gaps" */
+      padding: 0;
       background: transparent;
       box-shadow: none;
       border: none;
@@ -34,7 +38,8 @@ class KrisinformationAlertCard extends LitElement {
       display: flex;
       flex-direction: column;
       gap: 8px;
-      padding: 0 12px 12px 12px;
+      /* No vertical padding: otherwise it becomes visible whitespace between stacked cards */
+      padding: 0 var(--kris-alert-outer-padding, 0px);
     }
     .alert {
       display: grid;
@@ -155,7 +160,7 @@ class KrisinformationAlertCard extends LitElement {
     }
     .empty {
       color: var(--secondary-text-color);
-      padding: 8px 12px 12px 12px;
+      padding: 8px var(--kris-alert-outer-padding, 0px);
     }
 
     /* Editor-only controls */
@@ -334,7 +339,7 @@ class KrisinformationAlertCard extends LitElement {
 
     return keys.map((key) => html`
       <div class="area-group">
-        <div class="meta" style="margin: 0 12px;">${key}</div>
+        <div class="meta" style="margin: 0;">${key}</div>
         ${groups[key].map((item, idx) => this._renderAlert(item, idx))}
       </div>
     `);
