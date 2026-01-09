@@ -121,6 +121,17 @@ module.exports = {
         }
       }
     ],
+    [
+      "@semantic-release/exec",
+      {
+
+        // After a successful release, comment on issues referenced via "Fixes #123" etc
+        // in commits included in this release. GitHub will still close issues automatically
+        // when the PR is merged (closing keyword), this just adds "Included in X" context.
+        successCmd:
+          "node .release/notify-issues.js --range \"${lastRelease.gitHead}..${nextRelease.gitHead}\" --version \"${nextRelease.version}\" --git-tag \"${nextRelease.gitTag}\" --channel \"${nextRelease.channel}\""
+      }
+    ],
 
 
     [
