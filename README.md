@@ -43,6 +43,7 @@ You can install this card by following one of the guides below:
 
 </details>
 
+
 ## Configuration
 
 The card can be configured using the dashboard UI editor:
