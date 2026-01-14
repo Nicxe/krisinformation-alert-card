@@ -1120,6 +1120,7 @@ window.customCards.push({
   preview: true,
 });
 
+
 // Actions support (same behavior as SMHI card)
 KrisinformationAlertCard.prototype._onRowAction = function (e, item) {
   const tag = (e.composedPath?.()[0]?.tagName || '').toLowerCase();
