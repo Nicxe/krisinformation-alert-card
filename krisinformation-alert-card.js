@@ -57,7 +57,7 @@ class KrisinformationAlertCard extends LitElement {
     }
     .alert {
       display: grid;
-      grid-template-columns: auto 1fr auto;
+      grid-template-columns: auto 1fr;
       gap: 12px;
       align-items: start;
       padding: 12px;
@@ -135,6 +135,8 @@ class KrisinformationAlertCard extends LitElement {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      flex: 1 1 auto;
+      min-width: 0;
     }
     /* In compact mode, apply a tiny optical offset so the text looks centered */
     .headline.compact {
@@ -158,13 +160,11 @@ class KrisinformationAlertCard extends LitElement {
     .toggle-col {
       display: flex;
       justify-content: flex-end;
-      align-items: flex-start;
-      padding-top: 2px;
-      padding-right: 2px;
+      align-items: center;
+      margin-left: auto;
     }
     .toggle-col.compact {
       align-items: center;
-      padding-top: 0;
     }
     /* Compact toggle when placed in the right column (prevents it from consuming an extra line) */
     .details-toggle.compact {
@@ -441,6 +441,29 @@ class KrisinformationAlertCard extends LitElement {
         <div class="content ${isCompact ? 'compact' : ''}">
           <div class="title">
             <div class="headline ${isCompact ? 'compact' : ''}">${headline || description || (item.area || item.areas) || ''}</div>
+            ${showToggle ? html`
+              <div class="toggle-col ${isCompact ? 'compact' : ''}">
+                <div
+                  class="details-toggle compact"
+                  role="button"
+                  tabindex="0"
+                  aria-expanded="${expandedEffective}"
+                  title="${expandedEffective ? t('hide_details') : t('show_details')}"
+                  @click=${(e) => this._toggleDetails(e, item, idx)}
+                  @pointerdown=${(e) => e.stopPropagation()}
+                  @pointerup=${(e) => e.stopPropagation()}
+                  @keydown=${(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      this._toggleDetails(e, item, idx);
+                    }
+                    e.stopPropagation();
+                  }}
+                >
+                  ${expandedEffective ? t('hide_details') : t('show_details')}
+                </div>
+              </div>
+            ` : html``}
           </div>
           ${inlineParts.length > 0 ? html`<div class="meta">${inlineParts}</div>` : html``}
           ${inlineTextBlock ? html`<div class="details">${inlineTextBlock}</div>` : html``}
@@ -455,29 +478,6 @@ class KrisinformationAlertCard extends LitElement {
               `
             : html``}
         </div>
-        ${showToggle ? html`
-          <div class="toggle-col ${isCompact ? 'compact' : ''}">
-            <div
-              class="details-toggle compact"
-              role="button"
-              tabindex="0"
-              aria-expanded="${expandedEffective}"
-              title="${expandedEffective ? t('hide_details') : t('show_details')}"
-              @click=${(e) => this._toggleDetails(e, item, idx)}
-              @pointerdown=${(e) => e.stopPropagation()}
-              @pointerup=${(e) => e.stopPropagation()}
-              @keydown=${(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  this._toggleDetails(e, item, idx);
-                }
-                e.stopPropagation();
-              }}
-            >
-              ${expandedEffective ? t('hide_details') : t('show_details')}
-            </div>
-          </div>
-        ` : html`<div></div>`}
       </div>`;
   }
 
