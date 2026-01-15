@@ -15,6 +15,7 @@ This custom card is designed for the [Krisinformation integration](https://githu
 
 You can install this card by following one of the guides below:
 
+
 ### With HACS (Recommended)
 
 1. Click on the three dots in the top right corner of the HACS overview menu.
@@ -87,5 +88,4 @@ icon_color: ""
 ## Usage Screenshots
 
 <img width="599" height="588" alt="krisinfo_card" src="https://github.com/user-attachments/assets/804dc285-35a0-4383-8c15-0183cd3a39f5" />
-
 
