@@ -3,7 +3,21 @@
  * @license MIT (c) 2025 Niklas V
  */
 
-import { LitElement, html, css } from 'https://unpkg.com/lit?module';
+// Använd HA:s inbyggda Lit om tillgängligt, annars fallback till CDN
+const getLit = async () => {
+  // Home Assistant 2023.4+ exponerar Lit globalt
+  if (window.LitElement && window.litHtml) {
+    return {
+      LitElement: window.LitElement,
+      html: window.litHtml.html,
+      css: window.litHtml.css,
+    };
+  }
+  // Fallback för äldre HA-versioner eller fristående testning
+  return import('https://unpkg.com/lit@3.1.0?module');
+};
+
+const { LitElement, html, css } = await getLit();
 
 class KrisinformationAlertCard extends LitElement {
   static properties = {
@@ -43,7 +57,7 @@ class KrisinformationAlertCard extends LitElement {
     }
     .alert {
       display: grid;
-      grid-template-columns: auto 1fr auto;
+      grid-template-columns: auto 1fr;
       gap: 12px;
       align-items: start;
       padding: 12px;
@@ -121,6 +135,8 @@ class KrisinformationAlertCard extends LitElement {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      flex: 1 1 auto;
+      min-width: 0;
     }
     /* In compact mode, apply a tiny optical offset so the text looks centered */
     .headline.compact {
@@ -144,13 +160,11 @@ class KrisinformationAlertCard extends LitElement {
     .toggle-col {
       display: flex;
       justify-content: flex-end;
-      align-items: flex-start;
-      padding-top: 2px;
-      padding-right: 2px;
+      align-items: center;
+      margin-left: auto;
     }
     .toggle-col.compact {
       align-items: center;
-      padding-top: 0;
     }
     /* Compact toggle when placed in the right column (prevents it from consuming an extra line) */
     .details-toggle.compact {
@@ -177,6 +191,13 @@ class KrisinformationAlertCard extends LitElement {
     const normalized = this._normalizeConfig(config);
     this.config = normalized;
     this._expanded = {};
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    // Rensa timers för att undvika minnesläckor
+    clearTimeout(this._holdTimer);
+    clearTimeout(this._tapTimer);
   }
 
   getCardSize() {
@@ -420,6 +441,29 @@ class KrisinformationAlertCard extends LitElement {
         <div class="content ${isCompact ? 'compact' : ''}">
           <div class="title">
             <div class="headline ${isCompact ? 'compact' : ''}">${headline || description || (item.area || item.areas) || ''}</div>
+            ${showToggle ? html`
+              <div class="toggle-col ${isCompact ? 'compact' : ''}">
+                <div
+                  class="details-toggle compact"
+                  role="button"
+                  tabindex="0"
+                  aria-expanded="${expandedEffective}"
+                  title="${expandedEffective ? t('hide_details') : t('show_details')}"
+                  @click=${(e) => this._toggleDetails(e, item, idx)}
+                  @pointerdown=${(e) => e.stopPropagation()}
+                  @pointerup=${(e) => e.stopPropagation()}
+                  @keydown=${(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      this._toggleDetails(e, item, idx);
+                    }
+                    e.stopPropagation();
+                  }}
+                >
+                  ${expandedEffective ? t('hide_details') : t('show_details')}
+                </div>
+              </div>
+            ` : html``}
           </div>
           ${inlineParts.length > 0 ? html`<div class="meta">${inlineParts}</div>` : html``}
           ${inlineTextBlock ? html`<div class="details">${inlineTextBlock}</div>` : html``}
@@ -434,28 +478,6 @@ class KrisinformationAlertCard extends LitElement {
               `
             : html``}
         </div>
-        ${showToggle ? html`
-          <div class="toggle-col ${isCompact ? 'compact' : ''}">
-            <div
-              class="details-toggle compact"
-              role="button"
-              tabindex="0"
-              title="${expandedEffective ? t('hide_details') : t('show_details')}"
-              @click=${(e) => this._toggleDetails(e, item, idx)}
-              @pointerdown=${(e) => e.stopPropagation()}
-              @pointerup=${(e) => e.stopPropagation()}
-              @keydown=${(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  this._toggleDetails(e, item, idx);
-                }
-                e.stopPropagation();
-              }}
-            >
-              ${expandedEffective ? t('hide_details') : t('show_details')}
-            </div>
-          </div>
-        ` : html`<div></div>`}
       </div>`;
   }
 
@@ -509,13 +531,74 @@ class KrisinformationAlertCard extends LitElement {
   }
 
   _fmtTs(value) {
+    return this._formatDate(value);
+  }
+
+  _formatDate(value) {
     if (!value) return '';
-    try {
-      const d = new Date(value);
-      return d.toLocaleString();
-    } catch (e) {
-      return String(value);
+    const date = this._parseDate(value);
+    if (!date) return String(value);
+    const locale = (this.hass?.language || this.hass?.locale?.language || 'en').toLowerCase();
+    const format = this.config?.date_format || 'locale';
+    if (format === 'weekday_time') {
+      return this._formatDateParts(
+        date,
+        locale,
+        { weekday: 'long' },
+        { hour: '2-digit', minute: '2-digit' },
+      );
     }
+    if (format === 'day_month_time') {
+      return this._formatDateParts(
+        date,
+        locale,
+        { day: 'numeric', month: 'long' },
+        { hour: '2-digit', minute: '2-digit' },
+      );
+    }
+    if (format === 'day_month_time_year') {
+      return this._formatDateParts(
+        date,
+        locale,
+        { day: 'numeric', month: 'long', year: 'numeric' },
+        { hour: '2-digit', minute: '2-digit' },
+      );
+    }
+    return date.toLocaleString(locale);
+  }
+
+  _formatDateParts(date, locale, dateOptions, timeOptions) {
+    const safeTimeOptions = timeOptions ? { ...timeOptions } : null;
+    if (safeTimeOptions && !Object.prototype.hasOwnProperty.call(safeTimeOptions, 'hour12')) {
+      safeTimeOptions.hour12 = false;
+    }
+    const dateStr = dateOptions
+      ? new Intl.DateTimeFormat(locale, dateOptions).format(date)
+      : '';
+    const timeStr = safeTimeOptions
+      ? new Intl.DateTimeFormat(locale, safeTimeOptions).format(date)
+      : '';
+    if (dateStr && timeStr) return `${dateStr} ${timeStr}`;
+    return dateStr || timeStr || '';
+  }
+
+  _parseDate(value) {
+    if (!value) return null;
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? null : value;
+    }
+    if (typeof value === 'number') {
+      const numericDate = new Date(value);
+      return Number.isNaN(numericDate.getTime()) ? null : numericDate;
+    }
+    const raw = String(value).trim();
+    if (!raw) return null;
+    let normalized = raw;
+    if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(raw)) {
+      normalized = raw.replace(' ', 'T');
+    }
+    const parsed = new Date(normalized);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
 
   _showHeader() {
@@ -680,7 +763,12 @@ class KrisinformationAlertCard extends LitElement {
     if (normalized.severity_background === undefined) normalized.severity_background = false;
     if (normalized.max_items === undefined) normalized.max_items = 0;
     if (normalized.sort_order === undefined) normalized.sort_order = 'time_desc';
+    if (normalized.date_format === undefined) normalized.date_format = 'locale';
     if (normalized.group_by === undefined) normalized.group_by = 'none';
+    const allowedDateFormats = ['locale', 'day_month_time', 'weekday_time', 'day_month_time_year'];
+    if (!allowedDateFormats.includes(normalized.date_format)) {
+      normalized.date_format = 'locale';
+    }
     if (!Array.isArray(normalized.filter_severities)) normalized.filter_severities = [];
     if (!Array.isArray(normalized.filter_areas)) normalized.filter_areas = [];
     if (normalized.collapse_details === undefined) normalized.collapse_details = true;
@@ -724,6 +812,7 @@ class KrisinformationAlertCard extends LitElement {
       icon: 'mdi:alert-circle-outline',
       max_items: 0,
       sort_order: 'time_desc',
+      date_format: 'locale',
       group_by: 'none',
       filter_severities: [],
       filter_areas: [],
@@ -772,6 +861,21 @@ class KrisinformationAlertCardEditor extends LitElement {
 
   render() {
     if (!this.hass || !this._config) return html``;
+    const lang = (this.hass?.language || this.hass?.locale?.language || 'en').toLowerCase();
+    const dateFormatOptions = lang.startsWith('sv')
+      ? [
+          { value: 'locale', label: 'Systemstandard' },
+          { value: 'day_month_time', label: '14 januari 13:00' },
+          { value: 'weekday_time', label: 'Onsdag 13:00' },
+          { value: 'day_month_time_year', label: '14 januari 2026 13:00' },
+        ]
+      : [
+          { value: 'locale', label: 'System default' },
+          { value: 'day_month_time', label: '14 January 13:00' },
+          { value: 'weekday_time', label: 'Wednesday 13:00' },
+          { value: 'day_month_time_year', label: '14 January 2026 13:00' },
+        ];
+    const dateFormatLabel = lang.startsWith('sv') ? 'Datumformat' : 'Date format';
     const schema = [
       { name: 'entity', label: 'Entity', required: true, selector: { entity: { domain: 'sensor' } } },
       { name: 'title', label: 'Title', selector: { text: {} } },
@@ -786,6 +890,7 @@ class KrisinformationAlertCardEditor extends LitElement {
         { value: 'severity_then_time', label: 'Severity then time' },
         { value: 'type_then_time', label: 'Type then time' },
       ] } } },
+      { name: 'date_format', label: dateFormatLabel, selector: { select: { mode: 'dropdown', options: dateFormatOptions } } },
       { name: 'group_by', label: 'Group by', selector: { select: { mode: 'dropdown', options: [
         { value: 'none', label: 'No grouping' },
         { value: 'area', label: 'By area' },
@@ -818,6 +923,7 @@ class KrisinformationAlertCardEditor extends LitElement {
       icon_color: this._config.icon_color || '',
       max_items: this._config.max_items ?? 0,
       sort_order: this._config.sort_order || 'time_desc',
+      date_format: this._config.date_format || 'locale',
       group_by: this._config.group_by || 'none',
       filter_severities: this._config.filter_severities || [],
       filter_areas: (this._config.filter_areas || []).join(', '),
@@ -973,6 +1079,7 @@ class KrisinformationAlertCardEditor extends LitElement {
   }
 
   _computeLabel = (schema) => {
+    if (schema.label) return schema.label;
     const labels = {
       entity: 'Entity',
       title: 'Title',
@@ -983,6 +1090,7 @@ class KrisinformationAlertCardEditor extends LitElement {
       icon_color: 'Icon color',
       max_items: 'Max items',
       sort_order: 'Sort order',
+      date_format: 'Date format',
       group_by: 'Group by',
       filter_severities: 'Filter severities',
       filter_areas: 'Filter areas (comma-separated)',
@@ -1012,6 +1120,7 @@ window.customCards.push({
   preview: true,
 });
 
+
 // Actions support (same behavior as SMHI card)
 KrisinformationAlertCard.prototype._onRowAction = function (e, item) {
   const tag = (e.composedPath?.()[0]?.tagName || '').toLowerCase();
@@ -1020,14 +1129,6 @@ KrisinformationAlertCard.prototype._onRowAction = function (e, item) {
   }
   const action = this.config?.tap_action || { action: 'more-info' };
   this._runAction(action, item);
-};
-
-KrisinformationAlertCard.prototype._onKeydown = function (e, item) {
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault();
-    const action = this.config?.tap_action || { action: 'more-info' };
-    this._runAction(action, item);
-  }
 };
 
 KrisinformationAlertCard.prototype._runAction = function (action, item) {
