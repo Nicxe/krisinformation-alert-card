@@ -28,3 +28,5 @@ https://github.com/Nicxe/krisinformation
 Please open all new issues and feature requests in the main repository:
 
 https://github.com/Nicxe/krisinformation/issues
+
+![Krisinformation Alert Card](https://github.com/user-attachments/assets/804dc285-35a0-4383-8c15-0183cd3a39f5)
