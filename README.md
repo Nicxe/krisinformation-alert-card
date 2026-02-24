@@ -1,91 +1,32 @@
-# Krisinformation Alert Card
+# Krisinformation Alert Card (Deprecated)
 
-<img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/Nicxe/krisinformation-alert-card">
+This repository is deprecated.
 
+The alert card has moved and is now bundled with the main integration:
 
+https://github.com/Nicxe/krisinformation
 
-## Overview
+## Release note: card moved to the integration repository
 
-This custom card is designed for the [Krisinformation integration](https://github.com/Nicxe/krisinformation), allowing you to display crisis alerts (VMA) from Sveriges Radio's API for Important Public Announcements on your Home Assistant dashboards.
+Starting with the integration-based distribution, this standalone card repository is no longer used for updates.
 
+If you already use the card, migrate as follows:
 
-<a href="https://buymeacoffee.com/niklasv" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
+1. Update **Krisinformation** integration in HACS (repository: `Nicxe/krisinformation`).
+2. Remove/uninstall this deprecated HACS dashboard repository (`Nicxe/krisinformation-alert-card`).
+3. Remove old Lovelace resources that point to this repo (for example `/hacsfiles/...` URLs), if present.
+4. Keep your dashboard cards as they are. Card type is unchanged.
+5. Restart Home Assistant once.
+6. Hard-refresh the browser once (Ctrl/Cmd + Shift + R).
 
-## Installation
+The integration now manages the card resource automatically and serves it from `/local/krisinformation-alert-card.js`.
 
-You can install this card by following one of the guides below:
+For current installation, configuration, and usage instructions, see:
 
+https://github.com/Nicxe/krisinformation
 
-### With HACS (Recommended)
+Please open all new issues and feature requests in the main repository:
 
-1. Click on the three dots in the top right corner of the HACS overview menu.
-2. Select **Custom repositories**.
-3. Add the repository URL: `https://github.com/Nicxe/krisinformation-alert-card`.
-4. Set the type to **Dashboard**.
-5. Click the **Add** button.
-6. Search for **Krisinformation Alert Card** in HACS and click the **Download** button.
+https://github.com/Nicxe/krisinformation/issues
 
-<details>
-<summary>Without HACS</summary>
-
-
-
-1. Download the `krisinformation-alert-card.js` file from the [latest release](https://github.com/Nicxe/krisinformation-alert-card/releases).
-2. Place the `krisinformation-alert-card.js` file in your `config/www` folder.
-3. Add a reference to `/local/krisinformation-alert-card.js` in your dashboard. There are two ways to do this:
-    - **Using the UI:** Go to _Settings_ → _Dashboards_ → _More Options_ → _Resources_ → _Add Resource_. Set the URL as `krisinformation-alert-card.js` and set the _Resource type_ to `JavaScript Module`.
-      **Note:** If you do not see the Resources menu, you need to enable _Advanced Mode_ in your _User Profile_.
-    - **Using YAML:** Add the following code to the `lovelace` section of your configuration:
-        ```yaml
-        resources:
-          - url: /local/krisinformation-alert-card.js
-            type: module
-        ```
-
-</details>
-
-
-## Configuration
-
-The card can be configured using the dashboard UI editor:
-
-1. In the dashboard UI, click on the three dots in the top right corner.
-2. Click **Edit Dashboard**.
-3. Click the **Plus** button to add a new card.
-4. Find **Custom: Krisinformation Alert Card.js** in the list.
-
-
-#### Card Example in YAML
-
-```yaml
-type: custom:krisinformation-alert-card
-entity: sensor.krisinformation_hela_sverige
-title: ""
-show_header: true
-show_icon: true
-icon: mdi:alert-circle-outline
-hide_when_empty: true
-max_items: 0
-sort_order: time_desc
-group_by: none
-filter_severities: []
-filter_areas: []
-collapse_details: true
-show_area: true
-show_type: true
-show_severity: true
-show_sent: true
-show_details: true
-meta_order:
-  - area
-  - type
-  - severity
-  - sent
-icon_color: ""
-
-```
-
-## Usage Screenshots
-
-<img width="599" height="588" alt="krisinfo_card" src="https://github.com/user-attachments/assets/804dc285-35a0-4383-8c15-0183cd3a39f5" />
-
+![Krisinformation Alert Card](https://github.com/user-attachments/assets/804dc285-35a0-4383-8c15-0183cd3a39f5)
