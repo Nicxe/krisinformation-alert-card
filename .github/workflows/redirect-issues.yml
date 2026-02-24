@@ -1,0 +1,35 @@
+name: Redirect Issues to Integration Repository
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  redirect-and-close:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment and close issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue_number = context.payload.issue.number;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const integrationRepo = 'https://github.com/Nicxe/krisinformation';
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body: `This card repository is deprecated. Please open this issue in ${integrationRepo}, where both the integration and card are maintained.`
+            });
+
+            await github.rest.issues.update({
+              owner,
+              repo,
+              issue_number,
+              state: 'closed'
+            });
